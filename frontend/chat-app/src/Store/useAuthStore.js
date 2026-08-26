@@ -3,7 +3,7 @@ import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const SOCKET_URL =import.meta.env.MODE === "development"? "http://localhost:3000": "/";
+const SOCKET_URL = import.meta.env.VITE_API_URL;
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -30,13 +30,17 @@ export const useAuthStore = create((set, get) => ({
   // ── Signup ────────────────────────────────────────────────
   signup: async (formData) => {
     set({ isSigningUp: true });
+
     try {
       const res = await axiosInstance.post("/auth/signup", formData);
       set({ authUser: res.data.user });
+
       toast.success("Account created successfully!");
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Something went wrong");
+      toast.error(
+        error.response?.data?.message || "Something went wrong"
+      );
     } finally {
       set({ isSigningUp: false });
     }
@@ -45,13 +49,17 @@ export const useAuthStore = create((set, get) => ({
   // ── Login ─────────────────────────────────────────────────
   login: async (formData) => {
     set({ isSigningIn: true });
+
     try {
       const res = await axiosInstance.post("/auth/login", formData);
       set({ authUser: res.data.user });
+
       toast.success("Logged in successfully!");
       get().connectSocket();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Something went wrong");
+      toast.error(
+        error.response?.data?.message || "Something went wrong"
+      );
     } finally {
       set({ isSigningIn: false });
     }
@@ -61,23 +69,35 @@ export const useAuthStore = create((set, get) => ({
   logout: async () => {
     try {
       await axiosInstance.post("/auth/logout");
+
       set({ authUser: null });
+
       toast.success("Logged out successfully!");
       get().disconnectSocket();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Something went wrong");
+      toast.error(
+        error.response?.data?.message || "Something went wrong"
+      );
     }
   },
 
   // ── Update Profile ────────────────────────────────────────
   updateProfile: async (data) => {
     set({ isUpdatingProfile: true });
+
     try {
-      const res = await axiosInstance.put("/auth/update-profile", data);
+      const res = await axiosInstance.put(
+        "/auth/update-profile",
+        data
+      );
+
       set({ authUser: res.data.user });
+
       toast.success("Profile updated successfully!");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Something went wrong");
+      toast.error(
+        error.response?.data?.message || "Something went wrong"
+      );
     } finally {
       set({ isUpdatingProfile: false });
     }
@@ -86,24 +106,40 @@ export const useAuthStore = create((set, get) => ({
   // ── Connect Socket ────────────────────────────────────────
   connectSocket: () => {
     const { authUser } = get();
+
     if (!authUser || get().socket?.connected) return;
 
     const socket = io(SOCKET_URL, {
-      query: { userId: authUser._id || authUser.id },
+      query: {
+        userId: authUser._id || authUser.id,
+      },
+      withCredentials: true,
     });
 
-    socket.connect();
-    set({ socket });
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+    });
 
-    // Online users list
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+    });
+
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
+
+    set({ socket });
   },
 
   // ── Disconnect Socket ─────────────────────────────────────
   disconnectSocket: () => {
-    if (get().socket?.connected) get().socket.disconnect();
-    set({ socket: null, onlineUsers: [] });
+    if (get().socket?.connected) {
+      get().socket.disconnect();
+    }
+
+    set({
+      socket: null,
+      onlineUsers: [],
+    });
   },
 }));
