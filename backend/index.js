@@ -12,30 +12,33 @@ import { app, server } from './lib/socket.js';
 import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
 
-// ✅ Fix __dirname for ES Modules
+// Fix __dirname for ES Modules
 const __dirname = path.resolve();
 
 // ── Middlewares ─────────────────────────
-app.use(express.json({ limit: "50mb" }));
+app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
 
-app.use(cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  })
+);
 
 // ── Routes ─────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 
-
+// ── Serve Frontend in Production ───────
 if (process.env.NODE_ENV === 'production') {
-
   const frontendPath = path.join(__dirname, '../frontend/chat-app/dist');
 
+  // Serve React static files
   app.use(express.static(frontendPath));
 
-  app.get('/*', (req, res) => {
+  // Express 5 compatible catch-all route
+  app.get('/{*splat}', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
   });
 }
@@ -43,7 +46,7 @@ if (process.env.NODE_ENV === 'production') {
 // ── Start Server ───────────────────────
 const PORT = process.env.PORT || 5000;
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
   connectDB();
 });
