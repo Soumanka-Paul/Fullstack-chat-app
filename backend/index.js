@@ -4,16 +4,12 @@ dotenv.config();
 
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import path from 'path';
 
 import { connectDB } from './lib/db.js';
 import { app, server } from './lib/socket.js';
 
 import authRoutes from './routes/auth.route.js';
 import messageRoutes from './routes/message.route.js';
-
-// Fix __dirname for ES Modules
-const __dirname = path.resolve();
 
 // ── Middlewares ─────────────────────────
 app.use(express.json({ limit: '50mb' }));
@@ -29,19 +25,6 @@ app.use(
 // ── Routes ─────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
-
-// ── Serve Frontend in Production ───────
-if (process.env.NODE_ENV === 'production') {
-  const frontendPath = path.join(__dirname, '../frontend/chat-app/dist');
-
-  // Serve React static files
-  app.use(express.static(frontendPath));
-
-  // Express 5 compatible catch-all route
-  app.get('/{*splat}', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
-  });
-}
 
 // ── Start Server ───────────────────────
 const PORT = process.env.PORT || 5000;
